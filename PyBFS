@@ -1,0 +1,39 @@
+# -*-coding:utf-8-*-
+import urllib2
+import re # Python 中正则表达式模块
+url = 'https://www.amazon.cn'
+headers = {'User-Agent':'Mozilla/5.0(Windows;U;Windows NT 6.1;en-US;rv:1.9.1.6)Gecko/20091201 Firefox/3.5.6'}
+req = urllib2.Request(url, headers=headers)
+response = urllib2.urlopen(req)
+# 创建模板，并且使用re.S即多行匹配
+KindlePattern = re.compile('Kindle 商店.*?url1":"(.*?)"', re.S)
+# 使用re.search(pattern, string)在string中寻找pattern匹配的内容
+# 注意group(1) 下面会有详细的解释
+KindleURL = url + re.search(KindlePattern, response.read()).group(1)
+#print KindleURL
+
+req = urllib2.Request(KindleURL, headers=headers)
+response = urllib2.urlopen(req)
+#print response.read()
+discountPattern  =  re.compile('什么值得读.*?href="(.*?)".*?>今日特价书', re.S)
+bookURL = url + re.search(discountPattern, response.read()).group(1)
+#print bookURL
+
+req = urllib2.Request(bookURL, headers=headers)
+response = urllib2.urlopen(req)
+#print response.read()
+
+infoPattern = re.compile('productImage">.*?href="(.*?)".*?src="(.*?)".*?productTitle">.*?>(.*?)<.*?productByLine">\s+(.*?)\s*?<.*?a-color-price">(.*?)<',re.S)
+infos = re.findall(infoPattern, response.read())
+for info in infos:
+    print '链接：' + url + info[0].strip('\n')
+    print '图片地址：' + info[1].strip('\n')
+    print '书名：' + info[2].strip('\n')
+    print '作者：' + info[3].strip('\n')
+    print '价格: ' + info[4].strip('\n')
+    imgURL = info[1].strip('\n') # 获得图片链接
+    imgNamePattern = re.compile('/I/(.*?)jpg',re.S) # 用正则表达式提取图片名称
+    imgName = re.search(imgNamePattern, imgURL) # 提取图片名称
+    response = urllib2.urlopen(imgURL) # 打开图片链接
+    with open(imgName.group(1)+'jpg', 'wb') as file: # 以二进制写方式打开
+        file.write(response.read()) # 写入文件
